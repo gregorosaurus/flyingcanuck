@@ -1,5 +1,5 @@
 # Calling the Microsoft Graph API within Azure Data Factory (ADF)
-*August 8th, 2021*
+*August 17th, 2021*
 
 I recently had a request to call the [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/use-the-api) from within Azure Data Factory to store user data within an [Azure Data Lake](https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction).   There are a couple prerequisites required but overall, is relatively simple process and can easily be added to any ADF pipeline. 
 

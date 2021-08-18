@@ -1,12 +1,11 @@
 # Calling the Microsoft Graph API within Azure Data Factory (ADF)
 *August 8th, 2021*
 
-I recently had the request to call the [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/use-the-api) from within Azure Data Factory to store user data within an [Azure Data Lake](https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction).   There are a couple prerequisites required but overall, is relatively simple process and can easily be added to any ADF pipeline. 
+I recently had a request to call the [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/use-the-api) from within Azure Data Factory to store user data within an [Azure Data Lake](https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction).   There are a couple prerequisites required but overall, is relatively simple process and can easily be added to any ADF pipeline. 
 
 ## Prerequisites 
-1. An Azure AD Service Principal
-2. Delegated permissions to the Graph API for the Azure AD Tenant
-3. A location to save Graph API exported data, and a data set to support this saving. 
+1. An Azure AD tenant, with permissions to register an application and grant access to the Graph API.
+2. A location to save Graph API exported data, and a dataset to support this saving. 
 
 ## Disclaimers
 - Key vault is considered out of scope for this tutorial.  Do not store any keys in plain text and use key vault to retrieve the application secret when calling the pipeline created in this keyvault. 

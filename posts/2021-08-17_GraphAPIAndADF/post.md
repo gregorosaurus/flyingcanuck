@@ -291,7 +291,7 @@ Here is the data set JSON, for reference.
 
     <img src="2021-08-17 12_59_38-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>   
     
-    > Using the [Microsoft Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer) can help determine which fields you'd like to save and map. 
+    >**Note:** Using the [Microsoft Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer) can help determine which fields you'd like to save and map. 
 
 ## Testing
 Okay! We have a pipeline that looks generally like this:
@@ -299,7 +299,7 @@ Okay! We have a pipeline that looks generally like this:
 <img src="2021-08-17 12_54_41-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
 
 Now we need to test it.  Hit that big ol' debug button and enter in the values for the service principal.  
-> **Important:** In production, create a pipeline that executes the pipeline that we created with the parameters set, and use key vault to retrieve the application secret. 
+>**Important:** In production, create a pipeline that executes the pipeline that we created with the parameters set, and use key vault to retrieve the application secret. 
 
 <img src="2021-08-17 13_03_08-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
 
@@ -317,7 +317,7 @@ A quick preview:
 <img src="2021-08-17 13_05_29-raw_graph_users.csv - Microsoft Azure - Work - Microsoft​ Edge.png" alt="" width="500"/>
 
 And there we have it! 
-> **Important:** Make sure to publish your changes so you don't lose them!
+>**Important:** Make sure to publish your changes so you don't lose them!
 
 ## Summary
 

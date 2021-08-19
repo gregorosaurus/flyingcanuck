@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Flying Canuck</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='../../main.css'>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/" class="logo-link">
+            <div class="title">Flying Canuck</div>
+            <i>A place where I write things down.</i>
+        </a>
+    </div>
+    <div class="content">
+        <h1 id="calling-the-microsoft-graph-api-within-azure-data-factory-adf">Calling the Microsoft Graph API within Azure Data Factory (ADF)</h1>
+<p><em>August 17th, 2021</em></p>
+<p>I recently had a request to call the <a href="https://docs.microsoft.com/en-us/graph/use-the-api">Microsoft Graph API</a> from within Azure Data Factory to store user data within an <a href="https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction">Azure Data Lake</a>.   There are a couple prerequisites required but overall, is relatively simple process and can easily be added to any ADF pipeline.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ol>
+<li>An Azure AD tenant, with permissions to register an application and grant access to the Graph API.</li>
+<li>A location to save Graph API exported data, and a dataset to support this saving.</li>
+</ol>
+<h2 id="disclaimers">Disclaimers</h2>
+<ul>
+<li>Key vault is considered out of scope for this tutorial.  Do not store any keys in plain text and use key vault to retrieve the application secret when calling the pipeline created in this keyvault.</li>
+<li>OData paging will not be covered by this tutorial.  This will be added in a future post probably.  This purpose of this tutorial is to demonstrate the OAuth authentication flow and simple iteration through the data returned by the Graph API.</li>
+</ul>
+<h2 id="authentication-flow">Authentication Flow</h2>
+<p>The Graph API, like many other web services, uses OAuth 2.0 for authentication.  That means that all requests to the Microsoft Graph API must be authenticated using a valid OAuth mechanism.  The Graph API supports <em>Delegated Permissions</em> and <em>Application Permissions</em>.  We will use the <strong>Application Permission</strong> token request flow.</p>
+<p>The general flow of the Azure Data Factory pipeline will be as follows:</p>
+<ol>
+<li>Request an access token using the Azure AD Service Principal</li>
+<li>Call the Graph API route that has the data you're interested in</li>
+</ol>
+<h2 id="detailed-steps">Detailed Steps</h2>
+<h3 id="azure-ad-setup">Azure AD Setup</h3>
+<ol>
+<li><p>Open the <a href="portal.azure.com">Azure Portal</a></p>
+</li>
+<li><p>Open the <a href="https://ms.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/Overview">Azure Active Directory Blade</a></p>
+</li>
+<li><p>Click App Registrations</p>
+ <img src="2021-08-17 10_57_26-Automata Solutions - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="200"/>
+</li>
+<li><p>Click New Registration</p>
+ <img src="2021-08-17 10_58_16-Automata Solutions - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Type in an application name and then click Register</p>
+ <img src="2021-08-17 10_59_09-Register an application - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Take note of the Application ID (sometimes called the client ID) and the Tenant ID.</p>
+ <img src="2021-08-17 10_59_45-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Create a client secret.  This is the secret that will be used to authenticate against the Azure AD OAuth endpoint to request an access token.</p>
+ <img src="2021-08-17 11_00_38-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+ <img src="2021-08-17 11_00_57-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+ <img src="2021-08-17 11_12_49-Add a client secret - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+ <img src="2021-08-17 11_13_23-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge" alt="" width="500"/>
+ <img src="2021-08-17 11_13_23-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+<blockquote>
+<p><strong>Important:</strong> You must copy the secret value.  It can only be viewed once.</p>
+</blockquote>
+</li>
+<li><p>Now it's time to grant the permissions to the application.  These permissions detail what the app can access, both with delegated permissions and application permissions.</p>
+ <img src="2021-08-17 11_14_11-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+<p>Select the application/permission that you would like to grant.  Likely it's the
+Graph API, but you can select other permissions if you'd like.
+<img src="2021-08-17 11_14_44-Request API permissions - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/></p>
+ <img src="2021-08-17 11_15_00-Request API permissions - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+<blockquote>
+<p><strong>Remember:</strong> The application permission set is what we want to grant.  Delegated access is used for interactive logins such as websites or user applications.  ADF will use an application permission as it has no interactive login.</p>
+</blockquote>
+<p>Select the specific permission you'd like to grant.  This can be anything that the graph API offers.  For our example, we'll just read all user data.</p>
+ <img src="2021-08-17 11_15_32-.png" alt="" width="500"/>
+</li>
+<li><p>Admin authorize the application.</p>
+ <img src="2021-08-17 11_16_20-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+ <img src="2021-08-17 11_16_53-ADF Pipeline - Microsoft Azure - [InPrivate] - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+</ol>
+<h3 id="azure-data-factory-pipeline">Azure Data Factory Pipeline</h3>
+<p>Now that we've setup the Azure AD service principal, we can move on to creating the Azure Data Factory pipeline.</p>
+<blockquote>
+<p><strong>Note:</strong> A synapse pipeline would work exactly the same.  However, the ARM resource types in the provided JSON pipeline definitions would be slightly different.</p>
+</blockquote>
+<ol>
+<li><p>Open ADF</p>
+</li>
+<li><p>Create a new pipeline</p>
+</li>
+<li><p>Set up the following pipeline parameters:</p>
+<ul>
+<li>AppID (String)</li>
+<li>AppSecret (String)</li>
+<li>TenantID (String)</li>
+</ul>
+ <img src="2021-08-17 11_32_42-GmAdfTest - Azure Data Factory and 19 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<pre><code class="language-json">&quot;parameters&quot;: {
+    &quot;AppID&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;AppSecret&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;TenantID&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+    }
+},
+</code></pre>
+</li>
+<li><p>Create a <em>Web Activity</em> that authenticates to Azure AD and requests an access token. Name it OAuthentication. (Json definition below for reference).</p>
+<blockquote>
+<p><strong>Important:</strong> The name of this activity matters.  The name is used as a reference to retrieve the output, specifically the access token.</p>
+</blockquote>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;OAuthAuthentication&quot;,
+    &quot;description&quot;: &quot;This step authenticates the service principal to call the graph API&quot;,
+    &quot;type&quot;: &quot;WebActivity&quot;,
+    &quot;dependsOn&quot;: [],
+    &quot;policy&quot;: {
+        &quot;timeout&quot;: &quot;0.00:05:00&quot;,
+        &quot;retry&quot;: 1,
+        &quot;retryIntervalInSeconds&quot;: 30,
+        &quot;secureOutput&quot;: false,
+        &quot;secureInput&quot;: false
+    },
+    &quot;userProperties&quot;: [],
+    &quot;typeProperties&quot;: {
+        &quot;url&quot;: {
+            &quot;value&quot;: &quot;@concat('https://login.microsoftonline.com/',pipeline().parameters.TenantID,'/oauth2/v2.0/token')&quot;,
+            &quot;type&quot;: &quot;Expression&quot;
+        },
+        &quot;method&quot;: &quot;POST&quot;,
+        &quot;headers&quot;: {
+            &quot;Content-Type&quot;: &quot;application/x-www-form-urlencoded&quot;
+        },
+        &quot;body&quot;: {
+            &quot;value&quot;: &quot;@concat('client_id=',pipeline().parameters.AppID,'&amp;scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&amp;client_secret=',pipeline().parameters.AppSecret,'&amp;grant_type=client_credentials')&quot;,
+            &quot;type&quot;: &quot;Expression&quot;
+        }
+    }
+}
+</code></pre>
+</li>
+<li><p>Under <em>Settings</em>, enter in the URL as an expression (Click Add Dynamic Content)</p>
+<pre><code>@concat('https://login.microsoftonline.com/',pipeline().parameters.TenantID,'/oauth2/v2.0/token')
+</code></pre>
+</li>
+<li><p>Add a new header, with the name of <code>Content-Type</code>, and the value as <code>application/x-www-form-urlencoded</code></p>
+</li>
+<li><p>Set the <em>Body</em> to the following expression:</p>
+<pre><code>@concat('client_id=',pipeline().parameters.AppID,'&amp;scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&amp;client_secret=',pipeline().parameters.AppSecret,'&amp;grant_type=client_credentials')
+</code></pre>
+</li>
+<li><p>After all settings are entered, your settings pane should look like the following:</p>
+ <img src="2021-08-17 11_40_21-GmAdfTest - Azure Data Factory and 19 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Okay bear with me, this is going to be an adventure into linked services and data sets.  We're going to create a generic HTTP OAuth linked service, and then a Graph API data set.  Using that data set, we'll invoke a copy activity to actually copy the data to the data lake.</p>
+<p>So let's start with the linked service.</p>
+ <img src="2021-08-17 12_43_10-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Create the Generic HTTP Linked service.</p>
+<img src="2021-08-17 12_45_20-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<img src="2021-08-17 12_44_28-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Create the Generic Graph API Data set</p>
+<img src="2021-08-17 12_46_48-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<img src="2021-08-17 12_48_23-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<img src="2021-08-17 12_48_41-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Set the BaseURL parameter to <code>https://graph.microsoft.com</code></p>
+</li>
+<li><p>Set the Relative URL to <code>@dataset().GraphAPIRoute</code></p>
+<img src="2021-08-17 12_48_01-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Create a parameter:</p>
+<img src="2021-08-17 12_51_26-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Okay. we should be done with the linked service and data set.
+Here is the data set JSON, for reference.</p>
+</li>
+</ol>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;HTTP_GraphAPI_Data&quot;,
+    &quot;properties&quot;: {
+        &quot;linkedServiceName&quot;: {
+            &quot;referenceName&quot;: &quot;HTTP_Generic_LinkedService&quot;,
+            &quot;type&quot;: &quot;LinkedServiceReference&quot;,
+            &quot;parameters&quot;: {
+                &quot;BaseURL&quot;: {
+                    &quot;value&quot;: &quot;https://graph.microsoft.com&quot;,
+                    &quot;type&quot;: &quot;Expression&quot;
+                }
+            }
+        },
+        &quot;parameters&quot;: {
+            &quot;GraphAPIRoute&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;defaultValue&quot;: &quot;/v1.0/users&quot;
+            }
+        },
+        &quot;folder&quot;: {
+            &quot;name&quot;: &quot;BuiltIn&quot;
+        },
+        &quot;annotations&quot;: [],
+        &quot;type&quot;: &quot;Json&quot;,
+        &quot;typeProperties&quot;: {
+            &quot;location&quot;: {
+                &quot;type&quot;: &quot;HttpServerLocation&quot;,
+                &quot;relativeUrl&quot;: {
+                    &quot;value&quot;: &quot;@dataset().GraphAPIRoute&quot;,
+                    &quot;type&quot;: &quot;Expression&quot;
+                }
+            }
+        },
+        &quot;schema&quot;: {}
+    },
+    &quot;type&quot;: &quot;Microsoft.DataFactory/factories/datasets&quot;
+}
+</code></pre>
+<ol start="16">
+<li><p>Go back to our pipeline, and create a <em>copy activity</em>. This copy activity will be the thing doing the actual work to get our graph response to the data lake.</p>
+<img src="2021-08-17 12_54_41-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Set the source to our HTTP Graph API generic data set. Set the GraphAPIRoute parameter to the route you'd like to call. In our case, it'll be <code>/v1.0/users</code>. Set the additional headers to the following expression:</p>
+<pre><code>Authorization: Bearer @{activity('OAuthAuthentication').output.access_token}
+</code></pre>
+<img src="2021-08-17 12_56_23-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+</li>
+<li><p>Set the sink to the destination you'd like to save the file. In our case, we have a generic CSV dataset that we will use.  (You can use anything though).  I've included the JSON for this dataset for reference:</p>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;CSV_File&quot;,
+    &quot;properties&quot;: {
+        &quot;linkedServiceName&quot;: {
+            &quot;referenceName&quot;: &quot;AzureDataLakeShared&quot;,
+            &quot;type&quot;: &quot;LinkedServiceReference&quot;
+        },
+        &quot;parameters&quot;: {
+            &quot;Container&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+            },
+            &quot;Directory&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+            },
+            &quot;File&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+            }
+        },
+        &quot;folder&quot;: {
+            &quot;name&quot;: &quot;BuiltIn&quot;
+        },
+        &quot;annotations&quot;: [],
+        &quot;type&quot;: &quot;DelimitedText&quot;,
+        &quot;typeProperties&quot;: {
+            &quot;location&quot;: {
+                &quot;type&quot;: &quot;AzureBlobFSLocation&quot;,
+                &quot;fileName&quot;: {
+                    &quot;value&quot;: &quot;@dataset().File&quot;,
+                    &quot;type&quot;: &quot;Expression&quot;
+                },
+                &quot;folderPath&quot;: {
+                    &quot;value&quot;: &quot;@dataset().Directory&quot;,
+                    &quot;type&quot;: &quot;Expression&quot;
+                },
+                &quot;fileSystem&quot;: {
+                    &quot;value&quot;: &quot;@dataset().Container&quot;,
+                    &quot;type&quot;: &quot;Expression&quot;
+                }
+            },
+            &quot;columnDelimiter&quot;: &quot;,&quot;,
+            &quot;escapeChar&quot;: &quot;\\&quot;,
+            &quot;firstRowAsHeader&quot;: true,
+            &quot;quoteChar&quot;: &quot;\&quot;&quot;
+        },
+        &quot;schema&quot;: []
+    },
+    &quot;type&quot;: &quot;Microsoft.DataFactory/factories/datasets&quot;
+}
+</code></pre>
+<img src="2021-08-17 12_57_54-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="750"/>
+</li>
+<li><p>Set the mapping of the copy.  In our case, we must manually specify the mapping.  Depending on your destination dataset type, you may not have to.</p>
+<img src="2021-08-17 12_59_38-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>   
+<blockquote>
+<p><strong>Note:</strong> Using the <a href="https://developer.microsoft.com/en-us/graph/graph-explorer">Microsoft Graph Explorer</a> can help determine which fields you'd like to save and map.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="testing">Testing</h2>
+<p>Okay! We have a pipeline that looks generally like this:</p>
+<img src="2021-08-17 12_54_41-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<p>Now we need to test it.  Hit that big ol' debug button and enter in the values for the service principal.</p>
+<blockquote>
+<p><strong>Important:</strong> In production, create a pipeline that executes the pipeline that we created with the parameters set, and use key vault to retrieve the application secret.</p>
+</blockquote>
+<img src="2021-08-17 13_03_08-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<p>Wait for it to complete, and let's check out the data lake location!</p>
+<img src="2021-08-17 13_04_00-GmAdfTest - Azure Data Factory and 18 more pages - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<p>Off to the data lake!
+There it is!</p>
+<img src="2021-08-17 13_04_47-development - Microsoft Azure - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<p>A quick preview:</p>
+<img src="2021-08-17 13_05_29-raw_graph_users.csv - Microsoft Azure - Work - Microsoft​ Edge.png" alt="" width="500"/>
+<p>And there we have it!</p>
+<blockquote>
+<p><strong>Important:</strong> Make sure to publish your changes so you don't lose them!</p>
+</blockquote>
+<h2 id="summary">Summary</h2>
+<p>So what did we do?  We created a pipeline that 1) Authenticated with Azure AD using an Azure AD Service Principal, 2) created a generic Graph API dataset that used an HTTP linked service to 3) download graph user data and 4) save it into an ADLS gen2 data lake.</p>
+<p>Now you can use this data in any transformations, or other data warehouse tasks that you'd like. Using the Graph API from within ADF allows you to centrally manage these web requests like any other data service within your orgnization, benifiting from the capabilities like monitoring and scale that comes with using ADF.</p>
+
+    </div>
+</body>
+</html>

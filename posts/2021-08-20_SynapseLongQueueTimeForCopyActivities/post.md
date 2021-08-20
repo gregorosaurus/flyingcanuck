@@ -28,7 +28,7 @@ So something was causing the IR to wait to run the copy activity.  But why?
 While struggling to figure out the solution in the Synapse workspace, I created a new Synapse workspace, copied the pipeline, and ran it.  I had Queue Times of less than 5 seconds on each copy task!!  GREAT! But what was the difference?  
 Well the difference boiled down to the fact that the original synapse workspace had been **deployed with a Managed VNet**, while my new Synapse workspace did **not**. 
 At the time of writing, a Synapse workspace deployed with a Managed VNet requires that compute be deployed within the VNet for each Copy Activity to execute the copy.  This takes 2-3 minutes, and can not be reused for concurrent copies, or subsequent copies.  This is why there was a 2-3 minute queue time for *each* copy activity! Ouch!!
-Thankfully, their Synapse workspace wasn't shared with out groups and we were able to redeploy the Synapse workspace, without a managed VNet, and the pipeline worked as expected and completing in a reasonable time frame.  
+Thankfully, the Synapse workspace wasn't shared with other groups in the organization and we were able to redeploy the Synapse workspace, without a managed VNet, and the pipeline worked as expected and completing in a reasonable time frame.  
 
 ## Summary
 Managed VNets are great, but this is definitely a limitation on Synapse and hopefully will be addressed in the future.  If you have a large number of copy activities in a pipeline, expect that there will be significant queue time on each copy activity, resulting in a longer than expected execution time of the pipeline. 

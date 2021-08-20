@@ -60,7 +60,7 @@ function Find-Posts {
 
 Write-Host "Starting blog generation process"
 
-$posts = Find-Posts
+$posts = Find-Posts | Sort-Object PublishDate -Descending
 Write-Host "Found" $posts.Length "posts to process"
 
 $templateHTML = Get-Content -Path "template.html"

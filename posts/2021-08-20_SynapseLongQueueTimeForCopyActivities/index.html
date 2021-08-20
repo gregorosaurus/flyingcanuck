@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Flying Canuck</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='../../main.css'>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/" class="logo-link">
+            <div class="title">Flying Canuck</div>
+            <i>A place where I write things down.</i>
+        </a>
+    </div>
+    <div class="content">
+        <h1 id="synapse-copy-activity-queue-time-exceedingly-long">Synapse Copy Activity Queue Time Exceedingly Long</h1>
+<p><em>August 20th, 2021</em></p>
+<h2 id="the-problem">The Problem</h2>
+<p>In Synapse (and Azure Data Factory), each executing copy activity has a <em>Queue Time</em>, and a <em>Transfer Time</em>.  Recently I came across a customer trying to run over 70 copy activities concurrently on an Azure IR (Integration Runtime).  What the customer was complaining about was the fact that each copy activity was being queued for over 2 minutes, while the copy time took only seconds, resulting in the total pipeline length exceeding 20 minutes for seemingly simple copy activities.</p>
+<h2 id="the-pipeline">The Pipeline</h2>
+<img src="pipeline.png" />
+The pipeline was relatively simple.  Its job was to retrieve a list of files on ADLS gen2, filter them for CSV files, and then copy them into a SQL Pool on Azure. 
+<h2 id="the-symptoms">The Symptoms</h2>
+<p>On a pipeline run, what was noticed was the copy tasks being queued, for a significant amount of time.</p>
+<img src="Queuetimes.png"/>
+<p>When digging into the Copy Details, we saw that the transfer time for some files was only a few seconds, while the queue time was minutes!</p>
+<img src="copytaskdetails.png" />
+<p>Microsoft defines the <em>Queue</em> stage of the copy execution as</p>
+<blockquote>
+<p>The elapsed time until the copy activity actually starts on the integration runtime.</p>
+</blockquote>
+<p>So something was causing the IR to wait to run the copy activity.  But why?</p>
+<h2 id="the-solution">The Solution</h2>
+<p>While struggling to figure out the solution in the Synapse workspace, I created a new Synapse workspace, copied the pipeline, and ran it.  I had Queue Times of less than 5 seconds on each copy task!!  GREAT! But what was the difference?<br />
+Well the difference boiled down to the fact that the original synapse workspace had been <strong>deployed with a Managed VNet</strong>, while my new Synapse workspace did <strong>not</strong>.
+At the time of writing, a Synapse workspace deployed with a Managed VNet requires that compute be deployed within the VNet for each Copy Activity to execute the copy.  This takes 2-3 minutes, and can not be reused for concurrent copies, or subsequent copies.  This is why there was a 2-3 minute queue time for <em>each</em> copy activity! Ouch!!
+Thankfully, their Synapse workspace wasn't shared with out groups and we were able to redeploy the Synapse workspace, without a managed VNet, and the pipeline worked as expected and completing in a reasonable time frame.</p>
+<h2 id="summary">Summary</h2>
+<p>Managed VNets are great, but this is definitely a limitation on Synapse and hopefully will be addressed in the future.  If you have a large number of copy activities in a pipeline, expect that there will be significant queue time on each copy activity, resulting in a longer than expected execution time of the pipeline.</p>
+
+    </div>
+</body>
+</html>

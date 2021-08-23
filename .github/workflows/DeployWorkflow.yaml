@@ -27,6 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@main
 
+      - name: 'Build blog from markdown'
+        uses: Amadevus/pwsh-script@v2
+        with:
+          script: "./generate-blog.ps1"
+          
       - name: 'Run Azure webapp deploy action using publish profile credentials'
         uses: azure/webapps-deploy@v2
         with: 

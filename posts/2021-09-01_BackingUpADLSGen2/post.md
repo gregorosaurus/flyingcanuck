@@ -27,8 +27,28 @@ From Microsoft: AzCopy is a command-line tool that moves data into and out of Az
 
 Specifically, azcopy includes a command called [sync](https://docs.microsoft.com/en-us/azure/storage/common/storage-ref-azcopy-sync).  This replicates the source location to the destination location.  This command will be the basis of our backup strategy. 
 
-## SAS Tokens
+## Authentication
+
+[We can authenticate and authorize azcopy a number of ways](https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-authorize-azure-active-directory?toc=/azure/storage/blobs/toc.json). For our purposes we can use either SAS Tokens, or Service Principals.  
+
+Service principals are a great option if the storage account you're backing up to is within the same Azure AD Tenancy. If your source and backup storage accounts are in *different* Azure AD tenants, you must use SAS Tokens. 
+
+### Service Principal Setup
+
+If the source and backup storage accounts are within the *same* Azure AD tenant, a single service principal can be setup and used for authentication to each of the storage accounts. 
+
+### SAS Token Setup
+
+If the source and backup storage accounts are **not** within the same Azure AD tenant, you will have to setup and use SAS tokens.  
+
+>These SAS tokens will have expiries, so make sure you note the expiry and update them accordingly.  
+
+
 
 ## Azure Function
 
 ### Timer Trigger
+
+### Timeouts
+
+## Microsoft Azure Storage Data Movement Library

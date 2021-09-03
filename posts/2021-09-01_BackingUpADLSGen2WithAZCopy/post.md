@@ -16,7 +16,7 @@ Azure Backup is the primary method of backup for VMs, Storage, and other service
 
 ## Architecture
 
-<img src="architecture.jpg"/>
+<img src="architecture.jpg" style="width:350px"/>
 
 ## Prerequisites 
 
@@ -51,7 +51,7 @@ If the source and backup storage accounts are **not** within the same Azure AD t
 
 The source SAS token should have the following permissions:
 
-<img src="2021-09-01 10_13_42-gmadlshared - Microsoft Azure and 3 more pages - Work - Microsoft​ Edge.png"/>
+<img src="2021-09-01 10_13_42-gmadlshared - Microsoft Azure and 3 more pages - Work - Microsoft​ Edge.png" />
 
 #### Backup Setup
 The backup storage SAS token should have the following permissions:

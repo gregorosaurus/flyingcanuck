@@ -3,8 +3,7 @@
 ## Summary
 
 We had an iOS application that was erroring when connecting to its backend API.  Long story short, the application 
-uses TLS client authentication to authenticate with the API against an internal PKI CA certificate, so the application is manually calling [SecTrustEvaluateWithError](https://developer.apple.com/documentation/security/2980705-sectrustevaluatewitherror) to verify both the 
-server certificate and the chain (ie, that it was signed by the internal CA). 
+uses TLS client authentication to authenticate with the API against an internal PKI CA certificate, so the application is manually calling [SecTrustEvaluateWithError](https://developer.apple.com/documentation/security/2980705-sectrustevaluatewitherror) to verify both the server certificate and the chain (ie, that it was signed by the internal CA). 
 
 ## Issue
 

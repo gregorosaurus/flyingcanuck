@@ -23,6 +23,8 @@ To start, let's test to make sure we can run these tasks manually, without an au
 
 ### Manual SQLPackage Commands
 
+It's important to understand how the CI/CD process will work.  To do this, we will go through how the SQLPackage.exe program works, which calls are made, and what its outputs are.
+
 1. Before we begin, [download SQLPackage](https://docs.microsoft.com/en-us/sql/tools/sqlpackage/sqlpackage-download?view=sql-server-ver15).  
     >If you installed on windows, be sure to at `C:\Program Files\Microsoft SQL Server\150\DAC\bin` into your PATH environment variable, **or** make sure you cd into the directory after opening a command prompt. 
 2. Open a command prompt, and go to the directory of where the SQL Package was installed or extracted.

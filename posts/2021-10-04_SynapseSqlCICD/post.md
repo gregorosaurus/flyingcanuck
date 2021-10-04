@@ -151,7 +151,7 @@ If you're using SQL authentication, you will create a secret with the password o
 1. Create a new workflow
     <img src="2021-10-04 10_44_59-Actions · gregorosaurus_SynapseZebra and 4 more pages - Work - Microsoft​ Edge.png" />
 
-2. Copy in this source: <a href="workflow.yaml">SynapseSQLPromotion.yaml</a>
+2. Copy in this source: <a href="workflow.txt">SynapseSQLPromotion.yaml</a>
 
     <img src="2021-10-04 13_05_10-SynapseZebra_SynapseSQLPromotion.yml at main · gregorosaurus_SynapseZebra and 10.png">
 

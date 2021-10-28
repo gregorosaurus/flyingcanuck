@@ -71,3 +71,5 @@ The ADF environment should now have access to call the Storage REST API Put acti
 ## Summary
 
 Using the ```Put Blob From URL``` action on the Azure Storage REST API allowed us to download a file with retry capabilities successfully, and we were able to call this API method from ADF.  A side benefit from this is, we save the *data movement* costs associated with a standard Copy Activity in ADF.  The only cost associated is the activity run cost, which is negligible.  
+
+In our industry, we call that a win-win-win. 😊

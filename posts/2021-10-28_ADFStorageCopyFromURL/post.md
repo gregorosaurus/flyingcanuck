@@ -32,7 +32,7 @@ The URL is specified in a header called ```x-ms-copy-source```. When this action
 <img src="great.gif" width="200"/>
 
 
-So when we jump into the ADF pipeline, we have one *Web Activity* that executes this HTTP request.   The JSON of the pipeline is available [here](pipeline.json).
+So when we jump into the ADF pipeline, we have one *Web Activity* that executes this HTTP request.   The JSON of the pipeline is available [here](pipeline.txt).
 
 <img src="2021-10-28 10_34_10-GmAdfTest - Azure Data Factory and 8 more pages - Work - Microsoft​ Edge.png"/>
 

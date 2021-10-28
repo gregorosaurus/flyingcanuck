@@ -5,29 +5,29 @@
 
 ADF has the ability to download files or data from the internet using a web activity or an HTTP linked service.  This works in most cases without issue.  However, recently I came across an issue where an HTTP server-side issue was causing an ADF copy activity using an HTTP linked service to fail. 
 
-Generally, the ADF pipeline only task was to copy a file from the internet, to Azure Storage, every day. 
+In this case, the ADF pipeline's only task was to copy a file from the internet, to Azure Storage, every day. Simple!
 
 <img src="2021-10-28 11_34_00-Drawing1 - Visio Professional.png" width="250"/>
 
-The symptoms was the file would only download a *portion* of the file, not the entire file. Confusingly, **No errors were recorded on the Copy Activity.**  
+The symptom was the file would only download a *portion* of the file, not the entire file. Confusingly, **No errors were recorded on the Copy Activity.**  It always said successful.
 
 When running ```curl``` on the command line to download the file, we could see that the file was not downloading, and required a retry using the ```Range``` header.  
-The error that curl said was: 
+The error that curl outputted was: 
 ```
 cURL 18 transfer closed with outstanding read data remaining
 ````
 This was obviously something weird with the HTTP server (which was an Apache HTTP server). 
 
-Running ```wget``` did download the file successfully, however it did have to try multiple times and used the HTTP ```Range``` header to continue the download where it failed.
+Running ```wget``` did download the file successfully, however it did have to try multiple times and used the HTTP ```Range``` header to continue the download from where it failed.
 
-ADF's copy activity using the HTTP linked service does **not** retry a download if it fails.  It does not have any built in retry capabilities using the ```Range``` HTTP header.  Further, you can not manually specify the HTTP ```Range``` header. 
+ADF's copy activity using the HTTP linked service does **not** retry a download if it fails.  It does not have any built in retry capabilities using the ```Range``` HTTP header from what I can tell.  Further, you can not manually specify the HTTP ```Range``` header in the copy activity. 
 
 ## The Solution
 
 After trying a few different things, it was apparent that ADF wasn't going to be able to actually complete the HTTP download successfully, in any way.  
 
-What we came up with was using a lesser known action of the Azure Storage Blob REST API using the [Put Blob From URL](https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob-from-url) action.  In the ```Put Blob From URL``` action, you can ask the storage service to save a blob whose source is from a URL.  
-The URL is specified in a header called ```x-ms-copy-source```.  This header.  When this action is called, a blob is placed in the path specified in the request URI, and asynchronously is copied to that location (optionally can be synchronously).  Thankfully, it appears that the storage service **does** have some retry logic in the HTTP request, and did download the file successfully! 
+The solution was to use a lesser known API action of the Azure Storage Blob REST API: the [Put Blob From URL](https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob-from-url) action.  In the ```Put Blob From URL``` action, you can ask the storage service to save a blob whose source is from an external URL.  
+The URL is specified in a header called ```x-ms-copy-source```. When this action is called, a blob is placed in the path specified in the request URI, and asynchronously is copied to that location (optionally can be synchronously).  Thankfully, it appears that the storage service **does** have some retry logic in the HTTP request, and did download the file successfully! 
 
 <img src="great.gif" width="200"/>
 

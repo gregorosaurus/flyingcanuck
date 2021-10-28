@@ -1,0 +1,48 @@
+{
+    "name": "ECData Download Blob",
+    "properties": {
+        "activities": [
+            {
+                "name": "CopyECDataFromURL",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@{pipeline().parameters.BlobUri}",
+                        "type": "Expression"
+                    },
+                    "method": "PUT",
+                    "headers": {
+                        "x-ms-version": "2020-12-06",
+                        "x-ms-copy-source": "https://data-donnees.ec.gc.ca/data/species/protectrestore/protected-areas-canada/Canadian%20Protected%20Areas.gdb.zip"
+                    },
+                    "body": {
+                        "value": "@trim(' ')",
+                        "type": "Expression"
+                    },
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": "https://storage.azure.com/"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "BlobUri": {
+                "type": "string",
+                "defaultValue": "https://gmadlshared.blob.core.windows.net/development/test/ecdata.zip"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2021-10-19T22:10:57Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

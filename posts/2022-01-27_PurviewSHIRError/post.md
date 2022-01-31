@@ -53,7 +53,7 @@ Job ID: 279387a8-19d6-42e7-b804-a29f41bc3d19
 Log ID: Error
 ```
 
-Looking at the stack track, we could see that the Purview SHIR is using the *old* Azure Storage library, ```Microsoft.WindowsAzure.Storage```.   The more interesting of the stack trace is where is said: **This implementation is not part of the Windows Platform FIPS validated cryptographic algorithms**.  This leads me to think the old Azure Storage library is using some old cryptographic algorithm that on new Windows Server versions, have disabled by default.  
+Looking at the stack track, we could see that the Purview SHIR is using the *old* Azure Storage library, ```Microsoft.WindowsAzure.Storage```.   The more interesting part of the stack trace is where it says: **This implementation is not part of the Windows Platform FIPS validated cryptographic algorithms**.  This leads me to think the old Azure Storage library is using some old cryptographic algorithm that on new Windows Server versions have disabled by default.  
 
 ## Fix
 

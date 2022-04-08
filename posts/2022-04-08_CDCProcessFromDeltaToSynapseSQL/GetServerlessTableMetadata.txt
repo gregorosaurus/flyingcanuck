@@ -1,0 +1,67 @@
+SELECT  TABLE_NAME
+       ,STUFF((SELECT ', ' + CAST(COLUMN_NAME AS VARCHAR(100)) [text()]
+         FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_NAME = t.TABLE_NAME and TABLE_SCHEMA = t.TABLE_SCHEMA
+		 and COLUMN_NAME not in ('$FileName','_SysRowId', 'LSN', 'LastProcessedChange_DateTime', 'DataLakeModified_DateTime')
+		 order by Ordinal_position Asc
+         FOR XML PATH(''), TYPE)
+        .value('.','NVARCHAR(MAX)'),1,2,' ') COLUMN_NAME,
+
+	'CREATE TABLE ' + TABLE_NAME + ' ( ' +  STUFF((  
+    SELECT CHAR(13) + ', [' + c.COLUMN_NAME + '] ' +   c.DATA_TYPE + ' ' +
+    CASE   
+        WHEN c.DATA_TYPE IN ('varchar', 'char', 'varbinary', 'binary')  
+            THEN '(' + CASE WHEN c.CHARACTER_MAXIMUM_LENGTH = -1 OR c.CHARACTER_MAXIMUM_LENGTH is null
+                            THEN 'MAX'   
+                            ELSE CAST(c.CHARACTER_MAXIMUM_LENGTH AS VARCHAR(5))   
+                        END + ')'  
+        WHEN c.DATA_TYPE IN ('nvarchar', 'nchar')  
+            THEN '(' + CASE WHEN c.CHARACTER_MAXIMUM_LENGTH = -1 OR c.CHARACTER_MAXIMUM_LENGTH is null
+                            THEN 'MAX'   
+                            ELSE CAST(c.CHARACTER_MAXIMUM_LENGTH AS VARCHAR(5))   
+                        END + ')'  
+        WHEN c.DATA_TYPE IN ('datetime2', 'time2', 'datetimeoffset')   
+            THEN '(' + CAST(c.DATETIME_PRECISION AS VARCHAR(5)) + ')'  
+        WHEN c.DATA_TYPE in ('decimal' , 'numeric')
+            THEN '(' + CAST(c.NUMERIC_PRECISION AS VARCHAR(5)) + ',' + CAST(c.NUMERIC_SCALE AS VARCHAR(5)) + ')'  
+        ELSE '' 
+    END +  
+    --CASE WHEN c.collation_name IS NOT NULL AND c.system_type_id = c.user_type_id   
+    --    THEN ' COLLATE ' + c.collation_name  
+    --    ELSE ''  
+    --END +  
+    CASE WHEN c.IS_NULLABLE = 'YES'   
+        THEN ' NULL'  
+        ELSE ' NOT NULL'  
+    END  
+    --CASE WHEN c.default_object_id != 0   
+    --    THEN ' CONSTRAINT [' + OBJECT_NAME(c.default_object_id) + ']' +   
+    --            ' DEFAULT ' + OBJECT_DEFINITION(c.default_object_id)  
+    --    ELSE ''  
+    --END +   
+    ---CASE WHEN cc.[object_id] IS NOT NULL   
+    --    THEN ' CONSTRAINT [' + cc.name + '] CHECK ' + cc.[definition]  
+    --    ELSE ''  
+    --END +  
+    --CASE WHEN c.is_identity = 1   
+    --    THEN ' IDENTITY(' + CAST(IDENTITYPROPERTY(c.[object_id], 'SeedValue') AS VARCHAR(5)) + ',' +   
+    --                    CAST(IDENTITYPROPERTY(c.[object_id], 'IncrementValue') AS VARCHAR(5)) + ')'   
+    --    ELSE ''   
+    --END   
+    FROM INFORMATION_SCHEMA.COLUMNS c
+	WHERE TABLE_NAME = t.TABLE_NAME and TABLE_SCHEMA = t.TABLE_SCHEMA
+	and COLUMN_NAME not in ('$FileName','_SysRowId', 'LSN', 'LastProcessedChange_DateTime', 'DataLakeModified_DateTime')
+	order by Ordinal_position Asc
+	FOR XML PATH(''), TYPE)
+	.value('.','NVARCHAR(MAX)'),1,2,' ') + '
+)
+ WITH  
+  (   
+    DISTRIBUTION = HASH (@{activity('Get Control Table Information').output.firstRow.HashColumn}),   
+    CLUSTERED COLUMNSTORE INDEX  
+  );  '  SQL_CREATE
+		
+FROM INFORMATION_SCHEMA.COLUMNS t
+WHERE TABLE_NAME = '@{pipeline().parameters.SourceDBOTable}'
+and  TABLE_SCHEMA = '@{pipeline().parameters.SourceDBOSchema}'
+GROUP BY TABLE_NAME, TABLE_SCHEMA

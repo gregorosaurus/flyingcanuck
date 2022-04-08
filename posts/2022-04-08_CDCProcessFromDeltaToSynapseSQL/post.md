@@ -174,7 +174,8 @@ In this activity, we need to find out "what is the latest version of the delta t
 
 [Here is the notebook we will be running](GenerateCDCData.html).  **Import this notebook into your databricks cluster**.
 
-Once imported, we can then move onto activity #3.  
+Once imported, set the values of the service principal and storage keys in the **Set Storage And SQL Pool Authentication** section.
+After that's done, we can then move onto activity #3.  
 
 > This notebook will be used for the incremental load as well. 
 

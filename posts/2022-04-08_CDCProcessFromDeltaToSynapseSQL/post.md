@@ -450,4 +450,4 @@ Once the pipeline fully runs, you can check to make sure the changes were propag
 
 ## Summary
 
-We created two pipelines, full load, and incremental.  These pipelines bring in delta lake data efficiently and quickly using the CDC feature of delta lake and capabilities of Synapse SQL Pools.  
+We created two pipelines, full load, and incremental.  These pipelines replace date in delta lake data efficiently and quickly using the CDC feature of delta lake and capabilities of Synapse SQL Pools. The pipelines detailed in this post only show how to replicate data for *one* specific table.  In a later post, we'll be showing how to use a lookup to iterate through a control table to execute existing pipeline.  

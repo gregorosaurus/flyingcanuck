@@ -12,20 +12,22 @@ To get started, we need two pieces of information:
 
 Let's use an Azure Data Factory for our example.  
 
-1. Locate the ADF resource in the Azure portal. 
+1. Locate an ADF resource in the Azure portal. 
 <img src="2022-04-19 17_16_02-Data factories - Microsoft Azure - Work - Microsoft​ Edge.png" />
 
-2. Click Properties under the Settings section.
+2. Click *Properties* under the *Settings* section.
 <img src="2022-04-19 17_17_28-GmAdfTest - Microsoft Azure - Work - Microsoft​ Edge.png" />
 
-3. Note the Managed Identity Object ID and the Managed Identity Tenant ID. 
+3. Copy the Managed Identity Object ID and the Managed Identity Tenant ID - we'll need this shortly. 
 <img src="2022-04-19 17_18_27-GmAdfTest - Microsoft Azure - Work - Microsoft​ Edge.png" />
 
-4. Open your [ADX cluster](https://dataexplorer.azure.com) and open a new query. 
-<img src="2022-04-19 17_21_12-adxgmsharedprd.westus3.shared _ Azure Data Explorer - Work - Microsoft​ Edge.png" />
+4. Open your [ADX cluster](https://dataexplorer.azure.com) and open a new query. Run the following, substituting the values where required: 
+    ```kql
+    .add database <databasename> viewers ('aadapp=<ManagedIdentityObjectId>;<TenantId>') '<ResourceName>'
+    ```
+    <img src="2022-04-19 17_28_10-adx_ Azure Data Explorer - Work - Microsoft​ Edge.png" />
 
-
-Congratulations, your MSI should now have access to your ADX cluster. 
+**Congratulations**: your MSI should now have access to your ADX cluster. 
 > In this example we are using the `viewers` role.  Be sure to check out the [roles available in ADX](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/management/security-roles#managing-database-security-roles).
 
 <img src="missionaccomplished.jpg" width="400" />
